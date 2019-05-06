@@ -1,22 +1,38 @@
-use na::{Point3};
-use kiss3d::resource::Mesh;
-use std::collections::HashMap;
+use amethyst::ecs::{Component, VecStorage};
+
 
 const TAO: f32 = 1.618033988749895;
 const PLNT_SURFACE_RECURSION: u16 = 1;
+const TERR_HEIGHT_LIM: f32 = 10.0;  // Multiplied by radius
 
 pub struct Planet {
+   radius: f32,
    pub mesh: Mesh,
+   pub tiles: HashMap<usize, Tile>,  // Key is the index of the face in the mesh,
 }
 
 impl Planet {
-   pub fn generate(rad: f32, iter: u16) -> Planet {
-      PlanetGenerator::generate_planet(rad, iter)
+   pub fn generate(window: &mut Window, mesh_manager: &mut MeshManager, rad: f32, iter: u16) -> Planet {
+      let pl = PlanetGenerator::generate_planet(rad, iter);
+
+      pl
    }
 
    //pub fn update() {
       
    //}
+}
+
+pub struct Tile {
+   pub biome: Biome,
+}
+
+impl Component for Tile {
+   type Storage = VecStorage<Self>;
+}
+
+pub enum Biome {
+   Plains,
 }
 
 
@@ -40,10 +56,22 @@ impl PlanetGenerator {
    fn generate_planet(rad: f32, iter: u16) -> Planet {
       let mut generator = PlanetGenerator::new(rad);
       let (vertices, faces) = generator.generate_icosphere(iter);
+      //let terrain_map = generator.generate_terrain(10.0);  // Gets hash map for getting tile information, and changes height of points for cliffs etc.
 
       Planet {
+         radius: rad,
          mesh: Mesh::new(vertices, faces, None, None, false),
+         tiles: HashMap::new(),//terrain_map,
       }
+   }
+
+   fn generate_terrain(&mut self, max_height: f32) -> HashMap<usize, Tile> {
+      let mut tile_map: HashMap<usize, Tile> = HashMap::new();
+      for (i, face) in self.faces.iter().enumerate() {
+         tile_map.insert(i, Tile { biome: Biome::Plains });
+      }
+
+      tile_map
    }
 
    fn generate_icosphere(&mut self, recursion_level: u16) -> (Vec<Point3<f32>>, Vec<Point3<u16>>) { // Returns vertices and faces
@@ -145,3 +173,15 @@ impl PlanetGenerator {
    }
 }
 
+#[inline]
+fn cartesian_to_spherical(v: Point3<f32>, center: Point3<f32>) -> Vector3<f32> {  // Converts catesian to radius, inclination and azimuth (r, i, a) = (x, y ,z) in vector. All coords in f32 format
+   let dist_vec = v - center;
+   let r = (dist_vec.x * dist_vec.x) + (dist_vec.y * dist_vec.y) + (dist_vec.z * dist_vec.z);
+   Vector3::new(r, (dist_vec.z/r).acos(), (dist_vec.y/dist_vec.x).atan())
+}
+
+#[inline]
+fn spherical_to_cartesian(v: Vector3<f32>) -> Point3<f32> {
+   let sin_inc = v.y.sin();
+   Point3::new(v.x * sin_inc * v.z.cos(), v.x * sin_inc * v.z.sin(), v.x * v.y.cos())
+}
