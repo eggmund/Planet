@@ -14,7 +14,7 @@ use std::rc::Rc;
 fn main() {
    let mut window = Window::new("Kiss3d: custom_mesh");
 
-   let pl = Planet::generate(2.0, 2);
+   let pl = Planet::generate(10.0, 3);
    let mut c = window.add_mesh(Rc::new(RefCell::new(pl.mesh)), Vector3::new(1.0, 1.0, 1.0));  // Add planet's mesh to window
    c.set_color(0.9, 0.9, 0.9);
    c.enable_backface_culling(true);

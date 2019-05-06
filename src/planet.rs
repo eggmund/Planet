@@ -11,7 +11,7 @@ pub struct Planet {
 
 impl Planet {
    pub fn generate(rad: f32, iter: u16) -> Planet {
-      PlanetGenerator::generate_planet(1.0, iter)
+      PlanetGenerator::generate_planet(rad, iter)
    }
 
    //pub fn update() {
@@ -87,10 +87,6 @@ impl PlanetGenerator {
               Point3::new(8, 6, 7),
               Point3::new(9, 8, 1)];
 
-      //for i in 0..self.vertices.len() {
-      //  self.vertices[i] *= self.radius
-      //}
-
       for _ in 0..recursion_level {  // Further split icosohedron into an icosphere
          let mut faces2: Vec<Point3<u16>> = vec![];
          let temp_faces = self.faces.clone();
@@ -107,6 +103,10 @@ impl PlanetGenerator {
          }
          
          self.faces = faces2;
+      }
+
+      for i in 0..self.vertices.len() {
+        self.vertices[i] *= self.radius
       }
 
       (self.vertices.clone(), self.faces.clone())
