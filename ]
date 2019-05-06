@@ -10,8 +10,8 @@ pub struct Planet {
 }
 
 impl Planet {
-   pub fn generate(rad: f32, iter: u16) -> Planet {
-      PlanetGenerator::generate_planet(1.0, iter)
+   pub fn generate(rad: f32) -> Planet {
+      PlanetGenerator::generate_planet(1.0)
    }
 
    //pub fn update() {
@@ -23,44 +23,43 @@ impl Planet {
 struct PlanetGenerator {
    vertices: Vec<Point3<f32>>,
    faces: Vec<Point3<u16>>,
-   mid_point_index_cache: HashMap<u16, u16>,
-   radius: f32,
+   midPointIndexCache: HashMap<u16, u16>,
 }
 
 impl PlanetGenerator {
-   fn new(rad: f32) -> PlanetGenerator {
+   fn new() -> PlanetGenerator {
       PlanetGenerator {
          vertices: vec![],
          faces: vec![],
-         mid_point_index_cache: HashMap::new(),
-         radius: rad,
+         midPointIndexCache: HashMap::new(),
       }
    }
 
-   fn generate_planet(rad: f32, iter: u16) -> Planet {
-      let mut generator = PlanetGenerator::new(rad);
-      let (vertices, faces) = generator.generate_icosphere(iter);
+   fn generate_planet(rad: f32) -> Planet {
+      let mut generator = PlanetGenerator::new();
+      let (vertices, faces) = generator.generate_icosphere(rad, PLNT_SURFACE_RECURSION);
 
       Planet {
          mesh: Mesh::new(vertices, faces, None, None, false),
       }
    }
 
-   fn generate_icosphere(&mut self, recursion_level: u16) -> (Vec<Point3<f32>>, Vec<Point3<u16>>) { // Returns vertices and faces
-      self.add_vertex(Point3::new(-1.0, TAO, 0.0));   // 0
-      self.add_vertex(Point3::new(1.0, TAO, 0.0));    // 1
-      self.add_vertex(Point3::new(-1.0, -TAO, 0.0));  // 2
-      self.add_vertex(Point3::new(1.0, -TAO, 0.0));   // 3
+   fn generate_icosphere(&mut self, radius: f32, recursion_level: u16) -> (Vec<Point3<f32>>, Vec<Point3<u16>>) { // Returns vertices and faces
+      self.vertices =
+         vec![Point3::new(-1.0, TAO, 0.0),   // 0
+              Point3::new(1.0, TAO, 0.0),    // 1
+              Point3::new(-1.0, -TAO, 0.0),  // 2
+              Point3::new(1.0, -TAO, 0.0),   // 3
 
-      self.add_vertex(Point3::new(0.0, -1.0, TAO));   // 4
-      self.add_vertex(Point3::new(0.0, 1.0, TAO));   // 5
-      self.add_vertex(Point3::new(0.0, -1.0, -TAO));  // 6
-      self.add_vertex(Point3::new(0.0, 1.0, -TAO));   // 7
+              Point3::new(0.0, -1.0, TAO),   // 4
+              Point3::new(0.0, 1.0, TAO),    // 5
+              Point3::new(0.0, -1.0, -TAO),  // 6
+              Point3::new(0.0, 1.0, -TAO),   // 7
 
-      self.add_vertex(Point3::new(TAO, 0.0, -1.0));   // 8
-      self.add_vertex(Point3::new(TAO, 0.0, 1.0));    // 9
-      self.add_vertex(Point3::new(-TAO, 0.0, -1.0));  //10
-      self.add_vertex(Point3::new(-TAO, 0.0, 1.0));  //11
+              Point3::new(TAO, 0.0, -1.0),   // 8
+              Point3::new(TAO, 0.0, 1.0),    // 9
+              Point3::new(-TAO, 0.0, -1.0),  //10
+              Point3::new(-TAO, 0.0, 1.0)];  //11
 
       self.faces =   // Then, each face will be given a biome
          vec![Point3::new(0, 11, 5),
@@ -87,14 +86,14 @@ impl PlanetGenerator {
               Point3::new(8, 6, 7),
               Point3::new(9, 8, 1)];
 
-      //for i in 0..self.vertices.len() {
-      //  self.vertices[i] *= self.radius
-      //}
+      for i in 0..self.vertices.len() {
+        self.vertices[i] *= radius
+      }
 
+      
       for _ in 0..recursion_level {  // Further split icosohedron into an icosphere
-         let mut faces2: Vec<Point3<u16>> = vec![];
-         let temp_faces = self.faces.clone();
-         for tri in temp_faces.iter() {
+         let faces2: Vec<Point3<u16>> = vec![];
+         for tri in self.faces.iter() {
             let a = self.get_mid_point(tri.x, tri.y);
             let b = self.get_mid_point(tri.y, tri.z);
             let c = self.get_mid_point(tri.z, tri.x);
@@ -108,19 +107,18 @@ impl PlanetGenerator {
          
          self.faces = faces2;
       }
+      
 
-      (self.vertices.clone(), self.faces.clone())
+      (self.vertices, self.faces)
    }
 
    fn get_mid_point(&mut self, p1: u16, p2: u16) -> u16 { // Returns index of new point
       let (small_ind, big_ind) = if p1 < p2 { (p1, p2) } else { (p2, p1) };   // Since an edge is shared between two faces, the points may already be calculated.
-      let key = (small_ind << 8) + big_ind;
-      
-      if self.mid_point_index_cache.contains_key(&key) {
+      let key = (small_ind << 32) + big_ind;
+      if self.midPointIndexCache.contains_key(&key) {
          println!("Found in cache");
-         return *self.mid_point_index_cache.get(&key).unwrap();
+         return *self.midPointIndexCache.get(&key).unwrap();
       }
-
       // Not in cache, so calculate it
 
       let point1 = self.vertices[p1 as usize];
@@ -133,7 +131,7 @@ impl PlanetGenerator {
       let i = self.add_vertex(middle);
 
       // Add to the cache
-      self.mid_point_index_cache.insert(key, i);
+      self.midPointIndexCache.insert(key, i);
 
       i
    }
