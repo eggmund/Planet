@@ -20,13 +20,6 @@ fn main() {
    c.enable_backface_culling(true);
    c.set_local_translation(Translation::from(Vector3::new(0.0, 0.0, 10.0)));
 
-   let pl2 = Planet::generate(2.0, 0);
-   let mut c2 = window.add_mesh(Rc::new(RefCell::new(pl2.mesh)), Vector3::new(1.0, 1.0, 1.0));  // Add planet's mesh to window
-   c2.set_color(0.9, 0.9, 0.9);
-   c2.enable_backface_culling(true);
-   c2.set_local_translation(Translation::from(Vector3::new(5.0, 0.0, 10.0)));
-
-
    window.set_light(Light::StickToCamera);
 
    let rot = UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.014);
