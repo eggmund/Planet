@@ -1,9 +1,14 @@
-use na::{Point3};
+use na::{Point3, Vector3};
+
 use kiss3d::resource::Mesh;
+
 use std::collections::HashMap;
 
+use noise::{Perlin, NoiseFn};
+
+
 const TAO: f32 = 1.618033988749895;
-const PLNT_SURFACE_RECURSION: u16 = 1;
+//const PLNT_SURFACE_RECURSION: u16 = 1;
 
 pub struct Planet {
    pub mesh: Mesh,
@@ -11,7 +16,7 @@ pub struct Planet {
 
 impl Planet {
    pub fn generate(rad: f32, iter: u16) -> Planet {
-      PlanetGenerator::generate_planet(rad, iter)
+      PlanetGenerator::generate_planet(rad, iter, 0)
    }
 
    //pub fn update() {
@@ -21,8 +26,8 @@ impl Planet {
 
 
 struct PlanetGenerator {
-   vertices: Vec<Point3<f32>>,
-   faces: Vec<Point3<u16>>,
+   pub vertices: Vec<Point3<f32>>,
+   pub faces: Vec<Point3<u16>>,
    mid_point_index_cache: HashMap<u16, u16>,
    radius: f32,
 }
@@ -37,16 +42,34 @@ impl PlanetGenerator {
       }
    }
 
-   fn generate_planet(rad: f32, iter: u16) -> Planet {
+   fn generate_planet(rad: f32, iter: u16, seed: u32) -> Planet {
       let mut generator = PlanetGenerator::new(rad);
-      let (vertices, faces) = generator.generate_icosphere(iter);
+      generator.generate_icosphere(iter);
+      generator.generate_terrain(seed, 1.0);
 
       Planet {
-         mesh: Mesh::new(vertices, faces, None, None, false),
+         mesh: Mesh::new(generator.vertices, generator.faces, None, None, false),
       }
    }
 
-   fn generate_icosphere(&mut self, recursion_level: u16) -> (Vec<Point3<f32>>, Vec<Point3<u16>>) { // Returns vertices and faces
+   fn generate_terrain(&mut self, seed: u32, height_deviation: f64) {
+      let p = Perlin::new();
+      for vert in self.vertices.iter_mut() {
+         let mut spherical = cartesian_to_spherical(*vert, Point3::new(0.0, 0.0, 0.0));
+         spherical.x += (p.get([vert.x as f64, vert.y as f64, vert.z as f64]) * height_deviation) as f32;
+         let new = spherical_to_cartesian(spherical, Point3::new(0.0, 0.0, 0.0));
+         vert.x = new.x;
+         vert.y = new.y;
+         vert.z = new.z;
+      }
+
+      let cart = Point3::new(-3.0, 5.0, 2.0);
+      let sph = cartesian_to_spherical(cart, Point3::new(0.0, 0.0, 0.0));
+      let new = spherical_to_cartesian(sph, Point3::new(0.0, 0.0, 0.0));
+      println!("test! {} {} {}", new.x, new.y, new.z);
+   }
+
+   fn generate_icosphere(&mut self, recursion_level: u16) {
       self.add_vertex(Point3::new(-1.0, TAO, 0.0));   // 0
       self.add_vertex(Point3::new(1.0, TAO, 0.0));    // 1
       self.add_vertex(Point3::new(-1.0, -TAO, 0.0));  // 2
@@ -108,8 +131,6 @@ impl PlanetGenerator {
       for i in 0..self.vertices.len() {
         self.vertices[i] *= self.radius
       }
-
-      (self.vertices.clone(), self.faces.clone())
    }
 
    fn get_mid_point(&mut self, p1: u16, p2: u16) -> u16 { // Returns index of new point
@@ -145,3 +166,16 @@ impl PlanetGenerator {
    }
 }
 
+#[inline]
+fn cartesian_to_spherical(v: Point3<f32>, center: Point3<f32>) -> Vector3<f32> {  // Converts catesian to radius, inclination and azimuth (r, i, a) = (x, y ,z) in vector. All coords in f32 format
+   let dist_vec = v - center;
+   let r = ((dist_vec.x * dist_vec.x) + (dist_vec.y * dist_vec.y) + (dist_vec.z * dist_vec.z)).sqrt();
+   Vector3::new(r, (dist_vec.z/r).acos(), (dist_vec.y).atan2(dist_vec.x))
+}
+
+#[inline]
+fn spherical_to_cartesian(v: Vector3<f32>, center: Point3<f32>) -> Point3<f32> {
+   let sin_inc = v.y.sin();
+   let cart = Point3::new(v.x * sin_inc * v.z.cos(), v.x * sin_inc * v.z.sin(), v.x * v.y.cos());
+   Point3::new(cart.x + center.x, cart.y + center.y, cart.z + center.z)
+}
