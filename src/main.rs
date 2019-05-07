@@ -21,6 +21,28 @@ impl SimpleState for Game {
        let world = data.world;
 
        initialise_camera(world);
+   } 
+
+   fn handle_event(&mut self, _: StateData<()>, event: StateEvent) -> EmptyTrans {
+      if let StateEvent::Window(event) = &event {
+         match event {
+            Event::WindowEvent { event, .. } => match event {
+               WindowEvent::KeyboardInput {
+                  input: KeyboardInput { virtual_keycode: Some(VirtualKeyCode::Escape), .. }, ..
+               } |
+               WindowEvent::CloseRequested => Trans::Quit,
+               _ => Trans::None,
+            },
+            _ => Trans::None,
+         }
+      } else {
+         Trans::None
+      }
+   }
+
+   fn update(&mut self, _: StateData<()>) -> EmptyTrans {
+      println!("Main update.");
+      Trans::Quit
    }
 }
 

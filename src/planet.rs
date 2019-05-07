@@ -1,4 +1,4 @@
-use amethyst::ecs::{Component, VecStorage};
+use amethyst::ecs::{System, Entity, Component, VecStorage};
 use na::{Point3, Vector3};
 
 use std::collections::HashMap;
@@ -8,23 +8,32 @@ const PLNT_SURFACE_RECURSION: u16 = 1;
 const TERR_HEIGHT_LIM: f32 = 10.0;  // Multiplied by radius
 
 pub struct Planet {
-   radius: f32,
+   texture: Entity,
+}
+
+impl<'a> System<'a> for Planet {
+   type SystemData = ();
+
+   fn run(&mut self, data: Self::SystemData) {
+      println!("Running planet");
+   }
+}
+
+struct PlanetMapping {
+   pub radius: f32,
    pub mesh: Mesh,
    pub tiles: HashMap<usize, Tile>,  // Key is the index of the face in the mesh,
 }
 
+/*
 impl Planet {
    pub fn generate(window: &mut Window, mesh_manager: &mut MeshManager, rad: f32, iter: u16) -> Planet {
       let pl = PlanetGenerator::generate_planet(rad, iter);
 
       pl
    }
-
-   //pub fn update() {
-      
-   //}
 }
-
+*/
 
 
 pub struct Tile {
@@ -35,10 +44,13 @@ impl Component for Tile {
    type Storage = VecStorage<Self>;
 }
 
+/*
 pub enum Biome {
    Plains,
 }
+*/
 
+/*
 struct PlanetGenerator {
    vertices: Vec<Point3<f32>>,
    faces: Vec<Point3<usize>>,
@@ -175,6 +187,7 @@ impl PlanetGenerator {
       self.vertices.len() - 1  // Returns index.
    }
 }
+*/
 
 #[inline]
 fn cartesian_to_spherical(v: Point3<f32>, center: Point3<f32>) -> Vector3<f32> {  // Converts catesian to radius, inclination and azimuth (r, i, a) = (x, y ,z) in vector. All coords in f32 format
