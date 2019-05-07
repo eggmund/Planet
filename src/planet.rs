@@ -1,5 +1,7 @@
 use amethyst::ecs::{Component, VecStorage};
+use na::{Point3, Vector3};
 
+use std::collections::HashMap;
 
 const TAO: f32 = 1.618033988749895;
 const PLNT_SURFACE_RECURSION: u16 = 1;
@@ -23,6 +25,8 @@ impl Planet {
    //}
 }
 
+
+
 pub struct Tile {
    pub biome: Biome,
 }
@@ -35,11 +39,10 @@ pub enum Biome {
    Plains,
 }
 
-
 struct PlanetGenerator {
    vertices: Vec<Point3<f32>>,
-   faces: Vec<Point3<u16>>,
-   mid_point_index_cache: HashMap<u16, u16>,
+   faces: Vec<Point3<usize>>,
+   mid_point_index_cache: HashMap<usize, usize>,
    radius: f32,
 }
 
@@ -74,7 +77,7 @@ impl PlanetGenerator {
       tile_map
    }
 
-   fn generate_icosphere(&mut self, recursion_level: u16) -> (Vec<Point3<f32>>, Vec<Point3<u16>>) { // Returns vertices and faces
+   fn generate_icosphere(&mut self, recursion_level: u16) -> (Vec<Point3<f32>>, Vec<Point3<usize>>) { // Returns vertices and faces
       self.add_vertex(Point3::new(-1.0, TAO, 0.0));   // 0
       self.add_vertex(Point3::new(1.0, TAO, 0.0));    // 1
       self.add_vertex(Point3::new(-1.0, -TAO, 0.0));  // 2
@@ -116,7 +119,7 @@ impl PlanetGenerator {
               Point3::new(9, 8, 1)];
 
       for _ in 0..recursion_level {  // Further split icosohedron into an icosphere
-         let mut faces2: Vec<Point3<u16>> = vec![];
+         let mut faces2: Vec<Point3<usize>> = vec![];
          let temp_faces = self.faces.clone();
          for tri in temp_faces.iter() {
             let a = self.get_mid_point(tri.x, tri.y);
@@ -140,7 +143,7 @@ impl PlanetGenerator {
       (self.vertices.clone(), self.faces.clone())
    }
 
-   fn get_mid_point(&mut self, p1: u16, p2: u16) -> u16 { // Returns index of new point
+   fn get_mid_point(&mut self, p1: usize, p2: usize) -> usize { // Returns index of new point
       let (small_ind, big_ind) = if p1 < p2 { (p1, p2) } else { (p2, p1) };   // Since an edge is shared between two faces, the points may already be calculated.
       let key = (small_ind << 8) + big_ind;
       
@@ -166,10 +169,10 @@ impl PlanetGenerator {
       i
    }
 
-   fn add_vertex(&mut self, p: Point3<f32>) -> u16 {
+   fn add_vertex(&mut self, p: Point3<f32>) -> usize {
       let len = ((p.x * p.x) + (p.y * p.y) + (p.z * p.z)).sqrt();
       self.vertices.push(p/len);
-      (self.vertices.len() - 1) as u16  // Returns index.
+      self.vertices.len() - 1  // Returns index.
    }
 }
 

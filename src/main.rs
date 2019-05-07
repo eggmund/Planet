@@ -1,4 +1,5 @@
 extern crate amethyst;
+extern crate nalgebra as na;
 
 use amethyst::assets::{AssetStorage, Loader};
 use amethyst::core::transform::Transform;
@@ -8,15 +9,18 @@ use amethyst::renderer::{
     Camera, PngFormat, Projection, SpriteRender, SpriteSheet,
     SpriteSheetFormat, SpriteSheetHandle, Texture, TextureMetadata,
 };
+use amethyst::utils::application_root_dir;
 
-//mod planet;
-//use planet::Planet;
+mod planet;
+use planet::Planet;
 
 struct Game;
 
 impl SimpleState for Game {
    fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
+       let world = data.world;
 
+       initialise_camera(world);
    }
 }
 
@@ -25,7 +29,7 @@ fn initialise_camera(world: &mut World) {
     transform.set_z(1.0);
     world
         .create_entity()
-        .with(Camera::standard_3d())
+        .with(Camera::standard_3d(1920.0, 720.0))
         .with(transform)
         .build();
 }
