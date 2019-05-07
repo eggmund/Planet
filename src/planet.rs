@@ -1,56 +1,72 @@
-use amethyst::ecs::{System, Entity, Component, VecStorage};
+use amethyst::ecs::{System, Entity, Component, DenseVecStorage, ReadStorage, Entities, Resources};
 use na::{Point3, Vector3};
 
 use std::collections::HashMap;
 
 const TAO: f32 = 1.618033988749895;
-const PLNT_SURFACE_RECURSION: u16 = 1;
-const TERR_HEIGHT_LIM: f32 = 10.0;  // Multiplied by radius
+const PLANET_RADIUS: f32 = 10.0;
+const PLANET_SURFACE_REFINE_LEVEL: u16 = 4;
+//const TERR_HEIGHT_LIM: f32 = 10.0;  // Multiplied by radius
 
-pub struct Planet {
-   texture: Entity,
-}
+pub struct PlanetSystem;
 
-impl<'a> System<'a> for Planet {
-   type SystemData = ();
 
-   fn run(&mut self, data: Self::SystemData) {
-      println!("Running planet");
+impl<'s> System<'s> for PlanetSystem {
+   type SystemData = (
+      //ReadStorage<'s, Tile>,
+      Entities<'s>,
+   );
+
+   fn setup(&mut self, res: &mut Resources) {
+      // Ensures that resources that implement `Default` and are present in your `SystemData` are added to `Resources`.
+      Self::SystemData::setup(res);
+      // Do what you want with `Resources` past this point.
+      
+      let (mesh_vertices, tiles) = PlanetGenerator::generate_planet_mesh(PLANET_RADIUS, PLANET_SURFACE_REFINE_LEVEL);
+      
+   }
+
+   fn run(&mut self, (mut tile_map, mut entities): Self::SystemData) {
+      println!("Running planet mapping");
+
    }
 }
-
-struct PlanetMapping {
-   pub radius: f32,
-   pub mesh: Mesh,
-   pub tiles: HashMap<usize, Tile>,  // Key is the index of the face in the mesh,
-}
-
-/*
-impl Planet {
-   pub fn generate(window: &mut Window, mesh_manager: &mut MeshManager, rad: f32, iter: u16) -> Planet {
-      let pl = PlanetGenerator::generate_planet(rad, iter);
-
-      pl
-   }
-}
-*/
-
 
 pub struct Tile {
+   pub mesh_vertices: Point3<usize>,
    pub biome: Biome,
 }
 
 impl Component for Tile {
-   type Storage = VecStorage<Self>;
+   type Storage = DenseVecStorage<Self>;
 }
 
-/*
+impl Tile {
+   fn new(vertices: Point3<usize>, biome: Biome) -> Tile {
+      Tile {
+         mesh_vertices: vertices,
+         biome: biome,
+         ..Default::default()
+      }
+   }
+}
+
+impl Default for Tile {
+   fn default() -> Tile {
+      Tile {
+         mesh_vertices: Point3::new(0usize, 0, 0),
+         biome: Biome::Plains,
+      }
+   }
+}
+
+
 pub enum Biome {
    Plains,
 }
-*/
 
-/*
+
+
 struct PlanetGenerator {
    vertices: Vec<Point3<f32>>,
    faces: Vec<Point3<usize>>,
@@ -68,18 +84,22 @@ impl PlanetGenerator {
       }
    }
 
-   fn generate_planet(rad: f32, iter: u16) -> Planet {
-      let mut generator = PlanetGenerator::new(rad);
-      let (vertices, faces) = generator.generate_icosphere(iter);
-      //let terrain_map = generator.generate_terrain(10.0);  // Gets hash map for getting tile information, and changes height of points for cliffs etc.
+   #[inline]
+   fn generate_planet_mesh(rad: f32, iter: u16) -> (Vec<Point3<f32>>, Vec<Tile>) {
+      let pl_gen = PlanetGenerator::new(rad);
+      pl_gen.generate_icosphere(iter);
+      let tiles = pl_gen.assign_biomes();
+      (pl_gen.vertices, tiles)
+   }
 
-      Planet {
-         radius: rad,
-         mesh: Mesh::new(vertices, faces, None, None, false),
-         tiles: HashMap::new(),//terrain_map,
+   fn assign_biomes(&self) -> Vec<Tile> {
+      let out: Vec<Tile> = vec![];
+      for face in self.faces.iter() {
+         out.push(Tile {  });
       }
    }
 
+   /*
    fn generate_terrain(&mut self, max_height: f32) -> HashMap<usize, Tile> {
       let mut tile_map: HashMap<usize, Tile> = HashMap::new();
       for (i, face) in self.faces.iter().enumerate() {
@@ -88,8 +108,9 @@ impl PlanetGenerator {
 
       tile_map
    }
+   */
 
-   fn generate_icosphere(&mut self, recursion_level: u16) -> (Vec<Point3<f32>>, Vec<Point3<usize>>) { // Returns vertices and faces
+   fn generate_icosphere(&mut self, recursion_level: u16) {
       self.add_vertex(Point3::new(-1.0, TAO, 0.0));   // 0
       self.add_vertex(Point3::new(1.0, TAO, 0.0));    // 1
       self.add_vertex(Point3::new(-1.0, -TAO, 0.0));  // 2
@@ -151,8 +172,6 @@ impl PlanetGenerator {
       for i in 0..self.vertices.len() {
         self.vertices[i] *= self.radius
       }
-
-      (self.vertices.clone(), self.faces.clone())
    }
 
    fn get_mid_point(&mut self, p1: usize, p2: usize) -> usize { // Returns index of new point
@@ -187,7 +206,7 @@ impl PlanetGenerator {
       self.vertices.len() - 1  // Returns index.
    }
 }
-*/
+
 
 #[inline]
 fn cartesian_to_spherical(v: Point3<f32>, center: Point3<f32>) -> Vector3<f32> {  // Converts catesian to radius, inclination and azimuth (r, i, a) = (x, y ,z) in vector. All coords in f32 format

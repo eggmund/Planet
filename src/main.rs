@@ -1,28 +1,26 @@
 extern crate amethyst;
 extern crate nalgebra as na;
 
-use amethyst::assets::{AssetStorage, Loader};
+//use amethyst::assets::{AssetStorage, Loader};
 use amethyst::core::transform::Transform;
-use amethyst::ecs::prelude::{Component, DenseVecStorage};
 use amethyst::prelude::*;
-use amethyst::renderer::{
-    Camera, PngFormat, Projection, SpriteRender, SpriteSheet,
-    SpriteSheetFormat, SpriteSheetHandle, Texture, TextureMetadata,
-};
+use amethyst::renderer::{Camera, DisplayConfig, DrawFlat2D, Event, Pipeline,
+                         RenderBundle, Stage, VirtualKeyCode};
 use amethyst::utils::application_root_dir;
 
 mod planet;
-use planet::Planet;
+use planet::PlanetSystem;
 
 struct Game;
 
 impl SimpleState for Game {
    fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
-       let world = data.world;
+      let world = data.world;
 
-       initialise_camera(world);
-   } 
+      initialise_camera(world);
+   }
 
+   /*
    fn handle_event(&mut self, _: StateData<()>, event: StateEvent) -> EmptyTrans {
       if let StateEvent::Window(event) = &event {
          match event {
@@ -39,12 +37,17 @@ impl SimpleState for Game {
          Trans::None
       }
    }
+   */
 
+   /*
    fn update(&mut self, _: StateData<()>) -> EmptyTrans {
       println!("Main update.");
       Trans::Quit
    }
+   */
 }
+
+
 
 fn initialise_camera(world: &mut World) {
     let mut transform = Transform::default();
@@ -55,7 +58,6 @@ fn initialise_camera(world: &mut World) {
         .with(transform)
         .build();
 }
-
 
 
 fn main() -> amethyst::Result<()> {
@@ -72,6 +74,7 @@ fn main() -> amethyst::Result<()> {
       );
 
    let game_data = GameDataBuilder::default()
+      .with(PlanetSystem, "planet_system", &[])
       .with_bundle(
          RenderBundle::new(pipe, Some(display_cfg))
             .with_sprite_sheet_processor()
