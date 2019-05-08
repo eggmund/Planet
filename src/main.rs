@@ -9,14 +9,17 @@ use amethyst::renderer::{Camera, DisplayConfig, DrawFlat2D, Event, Pipeline,
 use amethyst::utils::application_root_dir;
 
 mod planet;
-use planet::PlanetSystem;
+mod movement;
+
+
+const PLANET_RADIUS: f32 = 10.0;
+const PLANET_SURFACE_REFINE_LEVEL: u16 = 4;
 
 struct Game;
 
 impl SimpleState for Game {
    fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
       let world = data.world;
-
       initialise_camera(world);
    }
 
@@ -48,15 +51,21 @@ impl SimpleState for Game {
 }
 
 
+fn initialise_planet(world: &mut World) {
+   let (mesh_vertices, tiles) = planet::PlanetGenerator::generate_planet_mesh(PLANET_RADIUS, PLANET_SURFACE_REFINE_LEVEL);
+   //world.register::<planet::Tile>();
+   
+   for tile in tiles.iter() {
+      world
+         .create_entity()
+         .with(tile.clone())
+         .build();
+   }
+}
 
 fn initialise_camera(world: &mut World) {
     let mut transform = Transform::default();
     transform.set_z(1.0);
-    world
-        .create_entity()
-        .with(Camera::standard_3d(1920.0, 720.0))
-        .with(transform)
-        .build();
 }
 
 
@@ -74,11 +83,11 @@ fn main() -> amethyst::Result<()> {
       );
 
    let game_data = GameDataBuilder::default()
-      .with(PlanetSystem, "planet_system", &[])
       .with_bundle(
          RenderBundle::new(pipe, Some(display_cfg))
             .with_sprite_sheet_processor()
-      )?;
+      )?
+      .with(planet::MapSystem, "map_system", &[]);
 
    let mut game = Application::new("./", Game, game_data)?;
 

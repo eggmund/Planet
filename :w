@@ -1,9 +1,7 @@
-use amethyst::ecs::{System, Component, DenseVecStorage, ReadStorage, Resources, Entities, Join};
+use amethyst::ecs::{System, Component, DenseVecStorage, ReadStorage, Resources};
 use na::{Point3, Vector3};
 
 use std::collections::HashMap;
-
-use crate::movement::SphericalCoords;
 
 const TAO: f32 = 1.618033988749895;
 //const TERR_HEIGHT_LIM: f32 = 10.0;  // Multiplied by radius
@@ -16,11 +14,9 @@ impl<'s> System<'s> for MapSystem {
       ReadStorage<'s, Tile>,
    );
 
-   fn run(&mut self, tile_map: Self::SystemData) {
-      println!("Running planet mapping");
-      for tile in (&tile_map).join() {
-         println!("biome: {}", match &tile.biome { Biome::Plains => "Plains" });
-      }
+   fn run(&mut self, tile_map : Self::SystemData) {
+      //println!("Running planet mapping");
+      println!("{:?}");
    }
 }
 
@@ -58,6 +54,7 @@ impl Default for Tile {
 pub enum Biome {
    Plains,
 }
+
 
 
 pub struct PlanetGenerator {
@@ -201,3 +198,15 @@ impl PlanetGenerator {
 }
 
 
+#[inline]
+fn cartesian_to_spherical(v: Point3<f32>, center: Point3<f32>) -> Vector3<f32> {  // Converts catesian to radius, inclination and azimuth (r, i, a) = (x, y ,z) in vector. All coords in f32 format
+   let dist_vec = v - center;
+   let r = (dist_vec.x * dist_vec.x) + (dist_vec.y * dist_vec.y) + (dist_vec.z * dist_vec.z);
+   Vector3::new(r, (dist_vec.z/r).acos(), (dist_vec.y/dist_vec.x).atan())
+}
+
+#[inline]
+fn spherical_to_cartesian(v: Vector3<f32>) -> Point3<f32> {
+   let sin_inc = v.y.sin();
+   Point3::new(v.x * sin_inc * v.z.cos(), v.x * sin_inc * v.z.sin(), v.x * v.y.cos())
+}
